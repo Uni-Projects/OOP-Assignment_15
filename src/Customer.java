@@ -1,11 +1,11 @@
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Callable;
 
 /**
- *
+ * @author Paolo Scattolin s1023775
+ * @author Johan Urban s1024726
  * @author Sjaak en Pieter
  */
 public class Customer implements Callable<Integer> {
@@ -15,33 +15,36 @@ public class Customer implements Callable<Integer> {
     private final int customerNumber;
     private final int numberOfArticles;
     private final static Random generator = new Random();
-    private List <Item> bin;
+    private List<Item> bin;
     private Register register;
 
     public Customer(int number, Store store) {
         this.store = store;
         customerNumber = number;
         numberOfArticles = generator.nextInt(MAX_ITEMS) + 1;
-        bin = new ArrayList<>(numberOfArticles);
     }
 
     @Override
-    public Integer call(){
+    public Integer call() {
+
         bin = store.getArticles(numberOfArticles);
-        register = store.getCheckout(generator.nextInt(10));
-        try {
-            register.claim(bin);
-        } catch (InterruptedException ex) {
-            System.out.println("SOmething went wrong with claim");
+        register = store.getCheckout(generator.nextInt(Store.NUMBER_OF_CHECKOUTS));
+
+        register.claim();
+
+        for (Item item : bin) {
+            register.putOnBelt(item);
         }
-        for(int i = 0 ; i < bin.size(); i++){
-            register.putOnBelt(bin.remove(i));
+
+        register.putOnBelt(null);
+
+        for (Item item : bin) {
+            register.removeFromBin();
         }
-         for(int i = 0 ; i < numberOfArticles; i++){
-            bin.add(register.removeFromBelt());
-        }
- 
-        
-        return 1;
+
+        register.free();
+
+        System.out.println("Customer " + customerNumber + " successfully purchased " + bin.size() + " articles!");
+        return numberOfArticles;
     }
 }

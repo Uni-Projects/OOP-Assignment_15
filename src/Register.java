@@ -1,28 +1,25 @@
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
- *
+ * @author Paolo Scattolin s1023775
+ * @author Johan Urban s1024726
  * @author Sjaak en Pieter
  */
 public class Register {
 
-    // Make sure that CONVEYOR_SIZE + BIN_SIZE >= Customer.MAX_ITEMS, otherwise danger of deadlock
-    private static final int CONVEYER_SIZE = 10, BIN_SIZE = 10;
+    private final ConveyerBelt bin;
     private final ConveyerBelt belt;
-    boolean taken;
-    List<Item> bin;
-    
-    public Register (){
+    private static final int CONVEYER_SIZE = 10, BIN_SIZE = 10;
+    private final Lock claimed = new ReentrantLock();
+
+    public Register() {
+        bin = new ConveyerBelt(BIN_SIZE);
         belt = new ConveyerBelt(CONVEYER_SIZE);
-        taken = false;
-        bin = new ArrayList<>(BIN_SIZE);
     }
 
+    // Make sure that CONVEYOR_SIZE + BIN_SIZE >= Customer.MAX_ITEMS, otherwise danger of deadlock
     public void putOnBelt(Item article) {
         belt.putIn(article);
     }
@@ -32,22 +29,18 @@ public class Register {
     }
 
     public void putInBin(Item article) {
-       bin.add(article);
+        bin.putIn(article);
     }
 
     public Item removeFromBin() {
-        return bin.remove(BIN_SIZE);
-    }
-    
-    public synchronized void claim(List<Item> bin) throws InterruptedException {
-        taken = true;
-        this.bin = bin;
-        this.wait();  
+        return bin.removeFrom();
     }
 
-    public synchronized void free() {
-        taken = false;
-        this.notifyAll();
-        
+    public void claim() {
+        claimed.lock();
+    }
+
+    public void free() {
+        claimed.unlock();
     }
 }

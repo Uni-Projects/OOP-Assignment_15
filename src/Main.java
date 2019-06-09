@@ -8,7 +8,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- *
+ * @author Paolo Scattolin s1023775
+ * @author Johan Urban s1024726
  * @author Sjaak en Pieter
  */
 public class Main {
@@ -25,8 +26,23 @@ public class Main {
                 .mapToObj(i -> new Customer(i, store))
                 .collect(Collectors.toList());
         List<Future<Integer>> customerResults = executor.invokeAll(customers);
-        int result = 0;
 
+        store.close();
+        
+        int result = customerResults.stream().map(i -> {
+            try {
+                return i.get();
+            } catch (InterruptedException | ExecutionException e) {
+                System.out.println(e.getMessage());
+            }
+            return 0;
+        }).mapToInt(Integer::intValue).sum();
+
+        
+        for(Future<Void> c: cashiers){
+            c.cancel(true);
+        }
+        store.executor.shutdownNow();
         System.out.println("All customers are done. " + result + " items sold.");
     }
 }
